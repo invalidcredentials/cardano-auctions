@@ -1,0 +1,732 @@
+/* ── Cardano Auctions — Admin Styles ─────────────────────────────── */
+
+.ca-admin { max-width: 1200px; }
+
+.ca-network-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: #0033ad;
+    color: #fff;
+    vertical-align: middle;
+    margin-left: 8px;
+}
+
+/* ── Status badges ────────────────────────────────────────────────── */
+
+.ca-status { display: inline-block; font-size: 11px; font-weight: 600; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; }
+.ca-status--active, .ca-status--confirmed { background: #d4edda; color: #155724; }
+.ca-status--draft, .ca-status--pending, .ca-status--awaiting { background: #e2e3e5; color: #383d41; }
+.ca-status--settled, .ca-status--won { background: #cce5ff; color: #004085; }
+.ca-status--settling { background: #fff3cd; color: #856404; }
+.ca-status--detected { background: #fff3cd; color: #856404; }
+.ca-status--refunding, .ca-status--refunded { background: #f8d7da; color: #721c24; }
+.ca-status--expired, .ca-status--failed, .ca-status--cancelled { background: #f8d7da; color: #721c24; }
+
+/* ── Grid layout for edit page ────────────────────────────────────── */
+
+.ca-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+}
+
+@media (max-width: 960px) {
+    .ca-grid { grid-template-columns: 1fr; }
+}
+
+.ca-col--side { position: sticky; top: 40px; }
+
+/* ── Panels ───────────────────────────────────────────────────────── */
+
+.ca-panel {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.ca-panel h3 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #23282d;
+}
+
+.ca-mono {
+    font-family: monospace;
+    font-size: 12px;
+    word-break: break-all;
+    background: #f1f1f1;
+    padding: 8px;
+    border-radius: 4px;
+    margin: 0 0 8px;
+}
+
+.ca-info-table { width: 100%; font-size: 13px; }
+.ca-info-table td { padding: 4px 0; }
+.ca-info-table td:first-child { color: #666; width: 100px; }
+
+/* ── NFT Preview ──────────────────────────────────────────────────── */
+
+.ca-nft-card {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin: 12px 0;
+}
+
+.ca-nft-card img {
+    width: 80px;
+    height: 80px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.ca-meta-list {
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.ca-meta-list div { margin-bottom: 2px; }
+
+/* ── Event Log ────────────────────────────────────────────────────── */
+
+.ca-event-log {
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 12px;
+}
+
+.ca-event {
+    padding: 6px 0;
+    border-bottom: 1px solid #f1f1f1;
+    display: grid;
+    grid-template-columns: 130px 100px 1fr;
+    gap: 8px;
+}
+
+.ca-event {
+    grid-template-columns: 130px 120px 1fr auto;
+}
+
+.ca-event-time { color: #999; font-family: monospace; font-size: 11px; }
+.ca-event-type { font-weight: 600; color: #0033ad; }
+.ca-event-msg  { color: #333; }
+
+.ca-meta-toggle {
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: #999;
+    font-size: 14px;
+    padding: 0;
+    line-height: 1;
+}
+.ca-meta-toggle:hover { color: #0033ad; }
+
+.ca-event-meta {
+    grid-column: 1 / -1;
+    background: #f8f9fa;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 11px;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 4px 0 0;
+}
+
+/* Event type color coding */
+.ca-etype--bid_placed, .ca-etype--bid_confirmed { color: #155724; }
+.ca-etype--payment_detected, .ca-etype--payment_confirmed { color: #0c5460; }
+.ca-etype--escrow_created { color: #0033ad; }
+.ca-etype--refund_sent, .ca-etype--refund_completed { color: #856404; }
+.ca-etype--refund_failed { color: #721c24; }
+.ca-etype--auction_activated { color: #155724; }
+.ca-etype--auction_ended, .ca-etype--auction_cancelled { color: #721c24; }
+.ca-etype--settlement_complete, .ca-etype--nft_transferred { color: #004085; }
+.ca-etype--wallet_send { color: #6f42c1; }
+
+/* Event log badge & export link */
+.ca-badge {
+    display: inline-block;
+    background: #0033ad;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.ca-export-link {
+    float: right;
+    font-size: 12px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    text-decoration: none;
+}
+
+/* ── Wallet Dashboard ────────────────────────────────────────────── */
+
+/* Summary cards */
+.ca-summary-cards {
+    display: flex;
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.ca-summary-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px 24px;
+    text-align: center;
+    min-width: 100px;
+}
+
+.ca-summary-num {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+    color: #0033ad;
+    line-height: 1.2;
+}
+
+.ca-summary-label {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+}
+
+/* Filter tabs */
+.ca-filter-tabs {
+    display: flex;
+    gap: 0;
+    margin: 16px 0;
+    border-bottom: 2px solid #ddd;
+}
+
+.ca-filter-tabs a {
+    padding: 8px 16px;
+    text-decoration: none;
+    color: #555;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+}
+
+.ca-filter-tabs a.active {
+    color: #0033ad;
+    border-bottom-color: #0033ad;
+    font-weight: 600;
+}
+
+.ca-filter-tabs a:hover { color: #0033ad; }
+
+/* Wallet card grid */
+.ca-wallet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.ca-wallet-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    transition: box-shadow 0.2s;
+}
+
+.ca-wallet-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+.ca-wallet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.ca-purpose-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+.ca-purpose--custody { background: #cce5ff; color: #004085; }
+.ca-purpose--escrow  { background: #fff3cd; color: #856404; }
+
+/* Balance display */
+.ca-wallet-balance {
+    font-size: 24px;
+    font-weight: 700;
+    color: #23282d;
+    margin-bottom: 8px;
+}
+
+.ca-wallet-balance .ca-wallet-refresh {
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+/* Address */
+.ca-wallet-address {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.ca-wallet-address code {
+    font-size: 11px;
+    background: #f1f1f1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    word-break: break-all;
+}
+
+.ca-copy-btn {
+    font-size: 11px;
+    cursor: pointer;
+    color: #0033ad;
+    white-space: nowrap;
+}
+
+/* Parent link */
+.ca-wallet-parent {
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.ca-wallet-parent a { text-decoration: none; font-weight: 500; }
+
+/* Asset tiles */
+.ca-asset-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.ca-asset-tile {
+    text-align: center;
+    font-size: 10px;
+}
+
+.ca-asset-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto 4px;
+}
+
+.ca-asset-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80px;
+}
+
+.ca-asset-qty { color: #666; display: block; }
+
+/* Send form */
+.ca-wallet-actions { margin: 8px 0; }
+
+.ca-send-form {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.ca-send-form input {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 6px 8px;
+}
+
+.ca-send-status {
+    display: block;
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+/* Footer */
+.ca-wallet-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #999;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #f1f1f1;
+}
+
+/* Drained status */
+.ca-status--drained { background: #e2e3e5; color: #383d41; }
+.ca-status--archived { background: #e2e3e5; color: #383d41; }
+
+/* ── Master Wallet Section ──────────────────────────────────────── */
+
+.ca-master-wallet-section {
+    margin: 20px 0;
+}
+
+.ca-master-wallet-section h2 {
+    margin: 0 0 12px;
+    font-size: 18px;
+}
+
+.ca-master-wallet-card {
+    background: #fff;
+    border: 2px solid #0033ad;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 700px;
+}
+
+.ca-purpose--master {
+    background: #0033ad;
+    color: #fff;
+}
+
+.ca-master-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #23282d;
+}
+
+/* Mnemonic banner */
+.ca-mnemonic-banner {
+    background: #fff3f3;
+    border: 2px solid #d32f2f;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.ca-mnemonic-warning {
+    color: #d32f2f;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.ca-mnemonic-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.ca-mnemonic-word {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.ca-mnemonic-word em {
+    color: #999;
+    font-style: normal;
+    font-size: 10px;
+    margin-right: 2px;
+}
+
+/* Extended key display */
+.ca-master-skey {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    font-size: 13px;
+}
+
+.ca-master-skey label {
+    font-weight: 600;
+    color: #666;
+    white-space: nowrap;
+}
+
+.ca-skey-blur {
+    filter: blur(4px);
+    transition: filter 0.2s;
+    font-size: 11px;
+    user-select: none;
+}
+
+.ca-skey-blur.ca-skey-revealed {
+    filter: none;
+    user-select: text;
+}
+
+/* Master wallet NFTs */
+.ca-master-nfts {
+    margin: 12px 0;
+}
+
+.ca-master-nfts h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Master wallet actions */
+.ca-master-actions {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f1f1;
+}
+
+/* Empty state */
+.ca-master-wallet-empty {
+    background: #fff;
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 700px;
+}
+
+.ca-master-generate-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.ca-master-generate-form input[type="text"] {
+    max-width: 220px;
+}
+
+/* Archived section */
+.ca-archived-section {
+    margin-top: 16px;
+    max-width: 700px;
+}
+
+.ca-archived-section summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    color: #555;
+    padding: 8px 0;
+}
+
+.ca-archived-list {
+    margin-top: 8px;
+}
+
+.ca-archived-wallet {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.ca-archived-name {
+    font-weight: 600;
+    min-width: 100px;
+}
+
+.ca-archived-date {
+    color: #999;
+    margin-left: auto;
+}
+
+/* ── NFT Browse Grid (auction edit page) ────────────────────────── */
+
+.ca-nft-browse {
+    margin-bottom: 16px;
+}
+
+.ca-nft-browse-or {
+    color: #666;
+    font-size: 13px;
+    margin-left: 8px;
+}
+
+.ca-nft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.ca-nft-grid-card {
+    background: #fff;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ca-nft-grid-card:hover {
+    border-color: #0033ad;
+    box-shadow: 0 2px 8px rgba(0,51,173,0.15);
+}
+
+.ca-nft-grid-card.selected {
+    border-color: #0033ad;
+    background: #f0f4ff;
+}
+
+.ca-nft-grid-card img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.ca-nft-grid-card .ca-nft-grid-name {
+    font-size: 11px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ca-nft-grid-loading {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 13px;
+}
+
+/* ── NFT Tab Navigation (Mint / Existing) ────────────────────────── */
+
+.ca-nft-tabs {
+    display: flex;
+    gap: 0;
+    margin: 0 0 16px;
+    border-bottom: 2px solid #ddd;
+}
+
+.ca-nft-tab {
+    padding: 8px 18px;
+    text-decoration: none;
+    color: #555;
+    font-weight: 500;
+    font-size: 13px;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+}
+
+.ca-nft-tab:hover { color: #0033ad; }
+
+.ca-nft-tab.active {
+    color: #0033ad;
+    border-bottom-color: #0033ad;
+    font-weight: 600;
+}
+
+.ca-nft-tab-content { display: none; }
+.ca-nft-tab-content.active { display: block; }
+
+/* ── Mint Steps ──────────────────────────────────────────────────── */
+
+.ca-mint-step {
+    padding: 16px 0;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.ca-mint-step:last-child { border-bottom: none; }
+
+.ca-mint-step h3 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #23282d;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Policy selector row */
+.ca-mint-policy-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ca-mint-policy-row select {
+    flex: 1;
+    max-width: 500px;
+}
+
+/* Mint action button area */
+.ca-mint-action {
+    text-align: center;
+    padding: 20px 0;
+}
+
+/* Custom attribute rows */
+.ca-custom-attr-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.ca-custom-attr-row input {
+    flex: 1;
+    max-width: 250px;
+}
+
+.ca-custom-attr-row .ca-remove-attr {
+    min-width: 32px;
+    padding: 0 8px;
+    color: #a00;
+    font-size: 18px;
+    line-height: 1;
+}
+
+/* Event type colors for minting events */
+.ca-etype--nft_minted { color: #6f42c1; }
+.ca-etype--policy_created { color: #0033ad; }
