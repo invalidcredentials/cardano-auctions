@@ -35,7 +35,10 @@ Bidder connects CIP-30 wallet → Places bid → ADA sent to HD-derived escrow w
 - **Auto-settlement** — when the auction ends, the NFT transfers from the master wallet to the winner and ADA goes to the seller. No manual intervention.
 - **Anti-snipe protection** — configurable timer extension when bids arrive near the deadline.
 - **NFT custody** — the master wallet holds the NFTs being auctioned. At settlement, the NFT is sent directly to the winner. Legacy per-auction custody wallets are also supported as a fallback.
-- **Admin dashboard** — create auctions, monitor bids in real-time, view event logs, manage the master wallet, and browse on-chain assets.
+- **NFT minting** — create minting policies, upload images to IPFS via Pinata, build CIP-25 metadata, and mint NFTs directly to the master wallet. Auto-populates auction fields from minted NFTs.
+- **Embeddable widget** — deploy auctions on any external site via a JavaScript widget. API key authentication with origin restrictions, CORS support, and theme customization. Managed from the Widget Deployer admin page.
+- **Gallery images** — auctions support multiple images with a thumbnail strip and click-to-switch on the frontend.
+- **Admin dashboard** — create auctions, monitor bids in real-time, view event logs, export CSV, manage the master wallet, send ADA, and browse on-chain assets.
 - **NFT metadata display** — the frontend auction card includes a collapsible NFT Details section showing policy ID, asset name, and all on-chain metadata.
 - **Shortcodes** — drop `[cardano_auction id="123"]` on any page to display a live auction.
 - **Zero plugin dependencies** — all Cardano cryptography (Ed25519, BIP39, CIP-1852), blockchain API clients, CBOR codec, and wallet connect are embedded directly. No other plugins required.
@@ -51,6 +54,7 @@ Bidder connects CIP-30 wallet → Places bid → ADA sent to HD-derived escrow w
 | PHP Extensions | `sodium`, `openssl`, `bcmath`, `json` |
 | Blockfrost API Key | [blockfrost.io](https://blockfrost.io) (free tier works) |
 | Anvil API Key | [ada-anvil.io](https://ada-anvil.io) (for tx building) |
+| Pinata API Key | [pinata.cloud](https://pinata.cloud) (optional — for NFT minting / IPFS uploads) |
 
 ---
 
@@ -166,12 +170,12 @@ The plugin creates 6 custom tables on activation:
 
 | Table | Purpose |
 |-------|---------|
-| `{prefix}_ca_auctions` | Auction details, NFT info, current bid state, settlement tx hashes |
-| `{prefix}_ca_bids` | Individual bids with escrow wallet reference, payment status, refund tracking |
-| `{prefix}_ca_escrow_wallets` | Encrypted wallet keys, addresses, balance cache, purpose (escrow/custody), master wallet linkage |
-| `{prefix}_ca_master_wallets` | Master HD wallet: encrypted mnemonic + signing key, address, derivation index, archive state |
-| `{prefix}_ca_mint_policies` | Minting policies for NFT creation (policy ID, expiration, status) |
-| `{prefix}_ca_event_log` | Audit trail of all auction events for monitoring and debugging |
+| `{prefix}ca_auctions` | Auction details, NFT info, current bid state, settlement tx hashes |
+| `{prefix}ca_bids` | Individual bids with escrow wallet reference, payment status, refund tracking |
+| `{prefix}ca_escrow_wallets` | Encrypted wallet keys, addresses, balance cache, purpose (escrow/custody), master wallet linkage |
+| `{prefix}ca_master_wallets` | Master HD wallet: encrypted mnemonic + signing key, address, derivation index, archive state |
+| `{prefix}ca_mint_policies` | Minting policies for NFT creation (policy ID, expiration, status) |
+| `{prefix}ca_event_log` | Audit trail of all auction events for monitoring and debugging |
 
 All tables are created via `dbDelta()` for safe upgrades.
 
@@ -184,9 +188,12 @@ All tables are created via `dbDelta()` for safe upgrades.
 | `GET` | `/cah/v1/auctions` | Public | List active auctions |
 | `GET` | `/cah/v1/auctions/{id}` | Public | Get auction details + current state |
 | `GET` | `/cah/v1/auctions/{id}/bids` | Public | Bid history (addresses truncated) |
-| `POST` | `/cah/v1/auctions/{id}/bid` | WP Nonce | Place bid → returns escrow address |
+| `GET` | `/cah/v1/auctions/{id}/bidder-status` | Public | Check a wallet's status on an auction |
+| `POST` | `/cah/v1/auctions/{id}/bid` | WP Nonce or API Key | Place bid → returns escrow address |
 | `GET` | `/cah/v1/bids/{id}/status` | Public | Poll payment/refund status |
 | `GET` | `/cah/v1/config` | Public | Network, payment timeout, etc. |
+| `POST` | `/cah/v1/tx/build` | WP Nonce or API Key | Build unsigned transaction via Anvil |
+| `POST` | `/cah/v1/tx/submit` | WP Nonce or API Key | Submit signed transaction via Anvil |
 
 ---
 
@@ -210,8 +217,55 @@ Renders a responsive grid of auction cards.
 
 | Attribute | Default | Options |
 |-----------|---------|---------|
-| `status` | `active` | `active`, `draft`, `settled`, `cancelled` |
+| `status` | `active` | `active`, `scheduled`, `draft`, `settling`, `settled`, `ended`, `failed`, `cancelled` |
 | `limit` | `12` | Any positive integer |
+
+---
+
+## Widget Deployer (Embeddable Auctions)
+
+Auctions can be embedded on **any external website** via a lightweight JavaScript widget — no WordPress required on the target site.
+
+### Setup
+
+1. Go to **Cardano Auctions → Widget Deployer**
+2. Generate an API key — optionally restrict it to specific origins and/or auction IDs
+3. Copy the embed code snippet
+4. Paste it into any HTML page
+
+### Embed Code
+
+```html
+<div id="ca-auction-widget" data-auction-id="123"></div>
+<script src="https://yoursite.com/wp-content/plugins/cardano-auctions/assets/js/ca-widget.min.js"
+        data-api-url="https://yoursite.com/wp-json/cah/v1"
+        data-api-key="your-api-key-here"></script>
+```
+
+### Features
+
+- **API key authentication** with SHA-256 hashing — keys are never stored in plain text
+- **Origin restrictions** — lock API keys to specific domains
+- **Auction restrictions** — limit which auctions a key can access
+- **CORS handling** — automatic cross-origin headers for valid keys
+- **Theme customization** — primary color, border radius, and font via the admin panel
+- Full CIP-30 wallet connect and bid flow work inside the widget
+
+---
+
+## NFT Minting
+
+The plugin includes a built-in NFT minting pipeline for creating NFTs directly from the WordPress admin.
+
+### Minting Flow
+
+1. **Create a minting policy** — time-locked native script derived from the master wallet
+2. **Upload image to IPFS** — via Pinata API, returns an `ipfs://` URI
+3. **Build CIP-25 metadata** — asset name, description, image, and custom attributes with 64-byte chunking
+4. **Mint** — transaction built via Anvil, signed server-side, and submitted to Cardano
+5. **Auto-populate auction** — minted NFT details automatically fill the auction creation form
+
+Requires Pinata to be enabled in Settings.
 
 ---
 
@@ -231,11 +285,16 @@ Renders a responsive grid of auction cards.
 | Setting | Default | Description |
 |---------|---------|-------------|
 | Network | `preprod` | Cardano network (preprod or mainnet) |
+| Blockfrost API Key | — | API key for the selected network ([blockfrost.io](https://blockfrost.io)) |
+| Anvil API Key | — | API key for the selected network ([ada-anvil.io](https://ada-anvil.io)) |
+| Seller Address | — | Default address to receive winning bid ADA |
 | Payment Timeout | 900s (15 min) | How long bidders have to complete payment |
 | Anti-Snipe Extension | 300s (5 min) | Timer extension when a late bid arrives |
 | Anti-Snipe Threshold | 300s (5 min) | A bid is "late" if placed within this window |
 | Min Bid Increment | 1,000,000 lovelace (1 ADA) | Minimum amount above current bid |
 | Platform Fee | 0 bps | Fee deducted from winning bid (100 bps = 1%) |
+| Pinata Enabled | Off | Enable IPFS uploads via Pinata for NFT minting |
+| Pinata JWT | — | Pinata API JWT for IPFS uploads |
 
 ---
 
@@ -323,9 +382,12 @@ cardano-auctions/
     │   ├── cardano-auction-admin.js  # Admin: NFT lookup, monitoring
     │   ├── ca-widget.js              # Embeddable auction widget
     │   └── ca-widget.min.js          # Minified widget script
-    └── css/
-        ├── cardano-auction.css       # Frontend styles
-        └── cardano-auction-admin.css # Admin styles
+    ├── css/
+    │   ├── cardano-auction.css       # Frontend styles
+    │   └── cardano-auction-admin.css # Admin styles
+    └── image-examples/
+        ├── auction-ui-example-1.png  # Auction card screenshot
+        └── auction-ui-example-2.png  # Bid modal screenshot
 ```
 
 ---
@@ -380,9 +442,18 @@ define( 'CA_MASTER_KEY', 'your-very-long-random-string-here' );
 
 ---
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Auction Card](assets/image-examples/auction-ui-example-1.png) | ![Bid Modal](assets/image-examples/auction-ui-example-2.png) |
+| Auction card with live countdown, bid history, and wallet connect | Bid placement modal with escrow payment flow |
+
+---
+
 ## License
 
-GPL-2.0-or-later — Free to use, modify, and distribute.
+GPL-2.0-or-later — Free to use, modify, and distribute. See [LICENSE](LICENSE) for the full text.
 
 ---
 
@@ -390,4 +461,4 @@ GPL-2.0-or-later — Free to use, modify, and distribute.
 
 Built by **Pb** at [cardanowordpressplugins.com](https://cardanowordpressplugins.com).
 
-Cardano cryptography powered by embedded components from [php-cardano](https://github.com/user/php-cardano) and patterns from [weld-for-wp](https://github.com/user/weld-for-wp).
+Cardano cryptography powered by embedded components from php-cardano and patterns from weld-for-wp — open-source projects by the same author.

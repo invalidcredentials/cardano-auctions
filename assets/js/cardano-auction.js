@@ -13,6 +13,13 @@
     const POLL_INTERVAL = config.pollInterval || 5000;
     const STORAGE_KEY = 'ca_wallet_key';
 
+    /** Escape HTML to prevent XSS when inserting dynamic content. */
+    function escHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(String(str)));
+        return div.innerHTML;
+    }
+
     /* ── Wallet State ─────────────────────────────────────────────── */
 
     const wallet = {
@@ -425,9 +432,9 @@
             }
             historyEl.innerHTML = data.bids.slice(0, 10).map(b =>
                 `<div class="ca-bid-entry">
-                    <span class="ca-bid-entry__amount">${b.bid_ada} ADA</span>
-                    <span class="ca-bid-entry__bidder">${b.bidder}</span>
-                    <span class="ca-bid-entry__status ca-status--${b.payment_status}">${b.payment_status}</span>
+                    <span class="ca-bid-entry__amount">${escHtml(b.bid_ada)} ADA</span>
+                    <span class="ca-bid-entry__bidder">${escHtml(b.bidder)}</span>
+                    <span class="ca-bid-entry__status ca-status--${escHtml(b.payment_status)}">${escHtml(b.payment_status)}</span>
                 </div>`
             ).join('');
         } catch (e) {
@@ -510,9 +517,9 @@
                 </div>
                 <div class="ca-modal__body">
                     ${installed.map(key => `
-                        <button class="ca-wallet-option" data-wallet="${key}">
-                            <img src="${window.cardano[key]?.icon || ''}" alt="" class="ca-wallet-icon">
-                            <span>${window.cardano[key]?.name || key}</span>
+                        <button class="ca-wallet-option" data-wallet="${escHtml(key)}">
+                            <img src="${escHtml(window.cardano[key]?.icon || '')}" alt="" class="ca-wallet-icon">
+                            <span>${escHtml(window.cardano[key]?.name || key)}</span>
                         </button>
                     `).join('')}
                 </div>

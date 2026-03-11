@@ -6,6 +6,13 @@
 
     const admin = window.CA_Admin || {};
 
+    /** Escape HTML to prevent XSS when inserting dynamic content. */
+    function escHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(String(str)));
+        return div.innerHTML;
+    }
+
     // NFT Lookup.
     $('#ca-lookup-nft').on('click', function () {
         const unit = $('#nft_unit').val().trim();
@@ -32,7 +39,7 @@
                 let metaHtml = '';
                 if (d.metadata) {
                     for (const [k, v] of Object.entries(d.metadata)) {
-                        metaHtml += `<div><strong>${k}:</strong> ${v}</div>`;
+                        metaHtml += `<div><strong>${escHtml(k)}:</strong> ${escHtml(v)}</div>`;
                     }
                 }
                 $('#ca-nft-meta').html(metaHtml);
@@ -63,7 +70,7 @@
             } else if (res.success) {
                 $status.html('<span style="color:orange">NFT not yet received. Send it to the custody address above.</span>');
             } else {
-                $status.html('<span style="color:red">Error: ' + (res.data || 'Check failed') + '</span>');
+                $status.html('<span style="color:red">Error: ' + escHtml(res.data || 'Check failed') + '</span>');
             }
         });
     });

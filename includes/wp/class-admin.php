@@ -16,7 +16,7 @@ class CA_Admin {
             'manage_options',
             'cardano-auctions',
             array( 'CA_Admin_Auctions', 'page_list' ),
-            'dashicons-gavel',
+            'dashicons-tag',
             30
         );
 

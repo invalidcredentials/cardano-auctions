@@ -16,6 +16,8 @@ $tables = array(
     $wpdb->prefix . 'ca_auctions',
     $wpdb->prefix . 'ca_bids',
     $wpdb->prefix . 'ca_escrow_wallets',
+    $wpdb->prefix . 'ca_master_wallets',
+    $wpdb->prefix . 'ca_mint_policies',
     $wpdb->prefix . 'ca_event_log',
 );
 
@@ -39,6 +41,8 @@ $options = array(
     'ca_default_min_increment',
     'ca_widget_api_keys',
     'ca_widget_config',
+    'ca_pinata_jwt',
+    'ca_pinata_enabled',
 );
 
 foreach ( $options as $opt ) {

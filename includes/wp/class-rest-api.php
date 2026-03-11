@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class CA_REST_API {
 
-    const NAMESPACE = 'cah/v1';
+    const API_NAMESPACE = 'cah/v1';
 
     /**
      * Boot the REST API: register routes + CORS filters.
@@ -19,7 +19,7 @@ class CA_REST_API {
      */
     public static function add_cors_headers( $served, $result, $request, $server ) {
         $route = $request->get_route();
-        if ( strpos( $route, '/' . self::NAMESPACE ) !== 0 ) return $served;
+        if ( strpos( $route, '/' . self::API_NAMESPACE ) !== 0 ) return $served;
 
         $api_key_raw = $request->get_header( 'X-CA-Api-Key' );
         if ( empty( $api_key_raw ) ) return $served;
@@ -68,7 +68,10 @@ class CA_REST_API {
     }
 
     /**
-     * Dual auth: WP nonce OR valid API key. Returns true or WP_REST_Response error.
+     * Dual auth: WP nonce OR valid API key.
+     * Used as permission_callback for authenticated REST endpoints.
+     *
+     * @return true|WP_Error
      */
     public static function verify_auth( WP_REST_Request $request ) {
         // Check WP nonce first (existing shortcode flow).
@@ -86,36 +89,36 @@ class CA_REST_API {
             }
         }
 
-        return new WP_REST_Response( array( 'error' => 'Authentication required.' ), 403 );
+        return new WP_Error( 'rest_forbidden', 'Authentication required.', array( 'status' => 403 ) );
     }
 
     public static function register(): void {
         // Public endpoints.
-        register_rest_route( self::NAMESPACE, '/auctions', array(
+        register_rest_route( self::API_NAMESPACE, '/auctions', array(
             'methods'             => 'GET',
             'callback'            => array( __CLASS__, 'list_auctions' ),
             'permission_callback' => '__return_true',
         ) );
 
-        register_rest_route( self::NAMESPACE, '/auctions/(?P<id>\d+)', array(
+        register_rest_route( self::API_NAMESPACE, '/auctions/(?P<id>\d+)', array(
             'methods'             => 'GET',
             'callback'            => array( __CLASS__, 'get_auction' ),
             'permission_callback' => '__return_true',
         ) );
 
-        register_rest_route( self::NAMESPACE, '/auctions/(?P<id>\d+)/bids', array(
+        register_rest_route( self::API_NAMESPACE, '/auctions/(?P<id>\d+)/bids', array(
             'methods'             => 'GET',
             'callback'            => array( __CLASS__, 'get_bids' ),
             'permission_callback' => '__return_true',
         ) );
 
-        register_rest_route( self::NAMESPACE, '/bids/(?P<id>\d+)/status', array(
+        register_rest_route( self::API_NAMESPACE, '/bids/(?P<id>\d+)/status', array(
             'methods'             => 'GET',
             'callback'            => array( __CLASS__, 'bid_status' ),
             'permission_callback' => '__return_true',
         ) );
 
-        register_rest_route( self::NAMESPACE, '/auctions/(?P<id>\d+)/bidder-status', array(
+        register_rest_route( self::API_NAMESPACE, '/auctions/(?P<id>\d+)/bidder-status', array(
             'methods'             => 'GET',
             'callback'            => array( __CLASS__, 'bidder_status' ),
             'permission_callback' => '__return_true',
@@ -124,17 +127,17 @@ class CA_REST_API {
             ),
         ) );
 
-        register_rest_route( self::NAMESPACE, '/config', array(
+        register_rest_route( self::API_NAMESPACE, '/config', array(
             'methods'             => 'GET',
             'callback'            => array( __CLASS__, 'get_config' ),
             'permission_callback' => '__return_true',
         ) );
 
-        // Authenticated endpoint.
-        register_rest_route( self::NAMESPACE, '/auctions/(?P<id>\d+)/bid', array(
+        // Authenticated endpoints.
+        register_rest_route( self::API_NAMESPACE, '/auctions/(?P<id>\d+)/bid', array(
             'methods'             => 'POST',
             'callback'            => array( __CLASS__, 'place_bid' ),
-            'permission_callback' => '__return_true',
+            'permission_callback' => array( __CLASS__, 'verify_auth' ),
             'args'                => array(
                 'bidder_address' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ),
                 'bid_ada'        => array( 'required' => true, 'type' => 'number' ),
@@ -142,20 +145,20 @@ class CA_REST_API {
         ) );
 
         // Transaction proxy endpoints (Anvil calls must go through server to avoid CORS + protect API key).
-        register_rest_route( self::NAMESPACE, '/tx/build', array(
+        register_rest_route( self::API_NAMESPACE, '/tx/build', array(
             'methods'             => 'POST',
             'callback'            => array( __CLASS__, 'tx_build' ),
-            'permission_callback' => '__return_true',
+            'permission_callback' => array( __CLASS__, 'verify_auth' ),
             'args'                => array(
                 'change_address' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ),
                 'outputs'        => array( 'required' => true ),
             ),
         ) );
 
-        register_rest_route( self::NAMESPACE, '/tx/submit', array(
+        register_rest_route( self::API_NAMESPACE, '/tx/submit', array(
             'methods'             => 'POST',
             'callback'            => array( __CLASS__, 'tx_submit' ),
-            'permission_callback' => '__return_true',
+            'permission_callback' => array( __CLASS__, 'verify_auth' ),
             'args'                => array(
                 'transaction' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ),
                 'witnesses'   => array( 'required' => true ),
@@ -298,13 +301,10 @@ class CA_REST_API {
     }
 
     public static function place_bid( WP_REST_Request $request ): WP_REST_Response {
-        $auth = self::verify_auth( $request );
-        if ( $auth instanceof WP_REST_Response ) return $auth;
-
         $auction_id     = (int) $request['id'];
         $bidder_address = $request->get_param( 'bidder_address' );
         $bid_ada        = (float) $request->get_param( 'bid_ada' );
-        $bid_lovelace   = (int) ( $bid_ada * 1000000 );
+        $bid_lovelace   = (int) round( $bid_ada * 1000000 );
 
         if ( $bid_lovelace < 1000000 ) {
             return new WP_REST_Response( array( 'error' => 'Minimum bid is 1 ADA.' ), 400 );
@@ -322,9 +322,6 @@ class CA_REST_API {
     /* ── Transaction Proxy (Anvil) ─────────────────────────────────── */
 
     public static function tx_build( WP_REST_Request $request ): WP_REST_Response {
-        $auth = self::verify_auth( $request );
-        if ( $auth instanceof WP_REST_Response ) return $auth;
-
         $change_address = $request->get_param( 'change_address' );
         $outputs        = $request->get_param( 'outputs' );
 
@@ -359,9 +356,6 @@ class CA_REST_API {
     }
 
     public static function tx_submit( WP_REST_Request $request ): WP_REST_Response {
-        $auth = self::verify_auth( $request );
-        if ( $auth instanceof WP_REST_Response ) return $auth;
-
         $transaction = $request->get_param( 'transaction' );
         $witnesses   = $request->get_param( 'witnesses' );
 

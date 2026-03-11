@@ -158,7 +158,7 @@ class CA_Escrow {
         // Step 2: Sign with escrow wallet key.
         $sign_result = CardanoTransactionSignerPHP::signTransaction( $unsigned_tx, $skey );
         if ( empty( $sign_result['success'] ) ) {
-            return new WP_Error( 'ca_sign_failed', 'Signing failed: ' . ( $sign_result['error'] ?? 'unknown' ) . ' (skey length: ' . strlen( $skey ) . ')' );
+            return new WP_Error( 'ca_sign_failed', 'Signing failed: ' . ( $sign_result['error'] ?? 'unknown' ) );
         }
 
         if ( empty( $sign_result['witnessSetHex'] ) ) {
@@ -209,13 +209,7 @@ class CA_Escrow {
         $derived_keyhash = bin2hex( sodium_crypto_generichash( $pub, '', 28 ) );
 
         if ( $stored_keyhash && $derived_keyhash !== $stored_keyhash ) {
-            return new WP_Error( 'ca_key_mismatch', sprintf(
-                'Signing key mismatch! Stored keyhash: %s, Derived keyhash: %s, Skey length: %d, Address: %s',
-                $stored_keyhash,
-                $derived_keyhash,
-                strlen( $skey_hex ),
-                $wallet['payment_address']
-            ) );
+            return new WP_Error( 'ca_key_mismatch', 'Signing key does not match the stored wallet address.' );
         }
 
         return true;
