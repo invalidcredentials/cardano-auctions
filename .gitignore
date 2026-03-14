@@ -26,5 +26,8 @@ vendor/
 # Build artifacts
 *.map
 
+# Private keys — NEVER commit
+assets/keys/
+
 # WordPress
 wp-config.php

@@ -715,7 +715,161 @@
 
     // Toggle new policy form.
     $('#ca-new-policy-toggle').on('click', function () {
+        $('#ca-import-policy-form').slideUp(200);
         $('#ca-new-policy-form').slideToggle(200);
+    });
+
+    // Toggle import policy form.
+    $('#ca-import-policy-toggle').on('click', function () {
+        $('#ca-new-policy-form').slideUp(200);
+        $('#ca-import-policy-form').slideToggle(200);
+    });
+
+    // Import sub-tab switching.
+    $(document).on('click', '.ca-import-tab', function (e) {
+        e.preventDefault();
+        var tab = $(this).data('import-tab');
+        $('.ca-import-tab').removeClass('active').css({
+            'border': '1px solid transparent',
+            'border-bottom': '2px solid transparent',
+            'background': 'transparent',
+            'font-weight': 'normal',
+            'color': '#50575e',
+        });
+        $(this).addClass('active').css({
+            'border': '1px solid #c3c4c7',
+            'border-bottom': '2px solid #fff',
+            'background': '#fff',
+            'font-weight': '600',
+            'color': '#1d2327',
+        });
+        $('.ca-import-tab-content').hide();
+        $('#ca-import-' + tab).show();
+    });
+
+    // Helper: add imported policy to dropdown.
+    function addImportedPolicyToDropdown(d) {
+        var expLabel = d.expiration_date ? ', expires ' + d.expiration_date.substring(0, 10) : ', no expiry';
+        var label = d.name + ' (imported' + expLabel + ')';
+        var $opt = $('<option>').val(d.id).text(label).attr('data-policy-id', d.policy_id);
+        $('#ca-mint-policy-select').append($opt).val(d.id);
+        $('#ca-import-policy-form').slideUp(200);
+        checkMintReady();
+    }
+
+    // Import: Skey + Script.
+    $('#ca-import-skey-btn').on('click', function () {
+        var name   = $('#ca-import-skey-name').val().trim();
+        var skey   = $('#ca-import-skey-key').val().trim();
+        var script = $('#ca-import-skey-script').val().trim();
+        var $status = $('#ca-import-skey-status');
+
+        if (!name)   { $status.text('Name is required.').css('color', 'red'); return; }
+        if (!skey)   { $status.text('Signing key is required.').css('color', 'red'); return; }
+        if (!script) { $status.text('Policy script is required.').css('color', 'red'); return; }
+
+        $(this).prop('disabled', true);
+        $status.text('Importing policy...').css('color', '#666');
+
+        $.post(admin.ajaxUrl, {
+            action: 'ca_import_policy_skey',
+            nonce: admin.nonce,
+            name: name,
+            skey: skey,
+            script: script,
+        }, function (res) {
+            $('#ca-import-skey-btn').prop('disabled', false);
+            if (res.success) {
+                $status.text('Imported!').css('color', 'green');
+                addImportedPolicyToDropdown(res.data);
+                $('#ca-import-skey-name').val('');
+                $('#ca-import-skey-key').val('');
+                $('#ca-import-skey-script').val('');
+            } else {
+                $status.text('Error: ' + (res.data || 'Failed')).css('color', 'red');
+            }
+        }).fail(function () {
+            $('#ca-import-skey-btn').prop('disabled', false);
+            $status.text('Request failed.').css('color', 'red');
+        });
+    });
+
+    // Import: Seed Phrase.
+    $('#ca-import-mnemonic-btn').on('click', function () {
+        var name     = $('#ca-import-mnemonic-name').val().trim();
+        var mnemonic = $('#ca-import-mnemonic-seed').val().trim();
+        var expiry   = $('#ca-import-mnemonic-expiry').val();
+        var $status  = $('#ca-import-mnemonic-status');
+
+        if (!name)     { $status.text('Name is required.').css('color', 'red'); return; }
+        if (!mnemonic) { $status.text('Seed phrase is required.').css('color', 'red'); return; }
+
+        $(this).prop('disabled', true);
+        $status.text('Deriving wallet and creating policy...').css('color', '#666');
+
+        var expirationDate = expiry ? expiry.replace('T', ' ') + ':00' : '';
+
+        $.post(admin.ajaxUrl, {
+            action: 'ca_import_policy_mnemonic',
+            nonce: admin.nonce,
+            name: name,
+            mnemonic: mnemonic,
+            expiration_date: expirationDate,
+        }, function (res) {
+            $('#ca-import-mnemonic-btn').prop('disabled', false);
+            if (res.success) {
+                $status.text('Imported!').css('color', 'green');
+                addImportedPolicyToDropdown(res.data);
+                $('#ca-import-mnemonic-name').val('');
+                $('#ca-import-mnemonic-seed').val('');
+            } else {
+                $status.text('Error: ' + (res.data || 'Failed')).css('color', 'red');
+            }
+        }).fail(function () {
+            $('#ca-import-mnemonic-btn').prop('disabled', false);
+            $status.text('Request failed.').css('color', 'red');
+        });
+    });
+
+    // Import: Full Manual.
+    $('#ca-import-manual-btn').on('click', function () {
+        var name     = $('#ca-import-manual-name').val().trim();
+        var policyId = $('#ca-import-manual-policy-id').val().trim();
+        var skey     = $('#ca-import-manual-skey').val().trim();
+        var script   = $('#ca-import-manual-script').val().trim();
+        var $status  = $('#ca-import-manual-status');
+
+        if (!name)     { $status.text('Name is required.').css('color', 'red'); return; }
+        if (!policyId) { $status.text('Policy ID is required.').css('color', 'red'); return; }
+        if (!skey)     { $status.text('Signing key is required.').css('color', 'red'); return; }
+        if (!script)   { $status.text('Policy script is required.').css('color', 'red'); return; }
+
+        $(this).prop('disabled', true);
+        $status.text('Importing policy...').css('color', '#666');
+
+        $.post(admin.ajaxUrl, {
+            action: 'ca_import_policy_manual',
+            nonce: admin.nonce,
+            name: name,
+            policy_id: policyId,
+            skey: skey,
+            script: script,
+        }, function (res) {
+            $('#ca-import-manual-btn').prop('disabled', false);
+            if (res.success) {
+                $status.text('Imported!').css('color', 'green');
+                addImportedPolicyToDropdown(res.data);
+                $('#ca-import-manual-name').val('');
+                $('#ca-import-manual-policy-id').val('');
+                $('#ca-import-manual-skey').val('');
+                $('#ca-import-manual-script').val('');
+            } else {
+                $status.text('Error: ' + (res.data || 'Failed')).css('color', 'red');
+            }
+        }).fail(function () {
+            $('#ca-import-manual-btn').prop('disabled', false);
+            $status.text('Request failed.').css('color', 'red');
+        });
     });
 
     // Create new collection/policy.

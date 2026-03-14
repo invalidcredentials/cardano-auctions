@@ -3,7 +3,7 @@
  * Plugin Name: Cardano Auctions
  * Plugin URI:  https://cardanowordpressplugins.com
  * Description: Cardano NFT auctions with escrow-based bidding, automatic refunds, and on-chain settlement. Fully self-contained — no plugin dependencies.
- * Version:     1.4.0
+ * Version:     1.5.0
  * Author:      Pb
  * Author URI:  https://cardanowordpressplugins.com
  * License:     GPL-2.0-or-later
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /* ─── Constants ─────────────────────────────────────────────────────── */
-define( 'CA_VERSION',     '1.4.0' );
+define( 'CA_VERSION',     '1.5.0' );
 define( 'CA_PLUGIN_FILE', __FILE__ );
 define( 'CA_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'CA_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -47,6 +47,7 @@ require_once CA_PLUGIN_DIR . 'includes/core/class-pinata.php';
 require_once CA_PLUGIN_DIR . 'includes/core/class-mint-policy.php';
 require_once CA_PLUGIN_DIR . 'includes/core/class-metadata-builder.php';
 require_once CA_PLUGIN_DIR . 'includes/core/class-minter.php';
+require_once CA_PLUGIN_DIR . 'includes/core/class-policy-import.php';
 require_once CA_PLUGIN_DIR . 'includes/core/class-api-keys.php';
 
 /* ─── Models ────────────────────────────────────────────────────────── */

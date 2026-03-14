@@ -128,13 +128,18 @@ $ada = function( $key ) use ( $auction ) {
                         <div class="ca-mint-policy-row">
                             <select id="ca-mint-policy-select">
                                 <option value="">Select a collection...</option>
-                                <?php foreach ( $policies as $p ) : ?>
+                                <?php foreach ( $policies as $p ) :
+                                    $is_imported = ! empty( $p['source'] ) && $p['source'] !== 'generated';
+                                    $exp_label   = ! empty( $p['expiration_date'] ) ? 'expires ' . substr( $p['expiration_date'], 0, 10 ) : 'no expiry';
+                                    $badge       = $is_imported ? 'imported, ' : '';
+                                ?>
                                     <option value="<?php echo (int) $p['id']; ?>" data-policy-id="<?php echo esc_attr( $p['policy_id'] ); ?>">
-                                        <?php echo esc_html( $p['name'] ); ?> (<?php echo (int) $p['items_minted']; ?> minted, expires <?php echo esc_html( substr( $p['expiration_date'], 0, 10 ) ); ?>)
+                                        <?php echo esc_html( $p['name'] ); ?> (<?php echo $badge; ?><?php echo (int) $p['items_minted']; ?> minted, <?php echo esc_html( $exp_label ); ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                             <button type="button" class="button" id="ca-new-policy-toggle">+ New Collection</button>
+                            <button type="button" class="button" id="ca-import-policy-toggle">Import External Policy</button>
                         </div>
                         <div id="ca-new-policy-form" style="display:none;margin-top:12px">
                             <table class="form-table" style="margin:0">
@@ -152,6 +157,98 @@ $ada = function( $key ) use ( $auction ) {
                             </table>
                             <button type="button" class="button button-primary" id="ca-create-policy">Create Collection</button>
                             <span id="ca-policy-create-status" style="margin-left:8px"></span>
+                        </div>
+
+                        <!-- Import External Policy -->
+                        <div id="ca-import-policy-form" style="display:none;margin-top:12px;border:1px solid #c3c4c7;border-radius:4px;padding:16px;background:#f9f9f9">
+                            <h4 style="margin-top:0">Import External Policy</h4>
+                            <p class="description" style="margin-bottom:12px">Import a minting policy from outside the plugin (e.g. from jpg.store, cardano-cli, etc). The signing key will be encrypted at rest.</p>
+
+                            <!-- Import sub-tabs -->
+                            <div class="ca-import-tabs" style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #c3c4c7">
+                                <a href="#" class="ca-import-tab active" data-import-tab="skey" style="padding:8px 16px;text-decoration:none;border:1px solid #c3c4c7;border-bottom:2px solid #fff;margin-bottom:-2px;background:#fff;font-weight:600">Skey + Script</a>
+                                <a href="#" class="ca-import-tab" data-import-tab="mnemonic" style="padding:8px 16px;text-decoration:none;border:1px solid transparent;margin-bottom:-2px;color:#50575e">Seed Phrase</a>
+                                <a href="#" class="ca-import-tab" data-import-tab="manual" style="padding:8px 16px;text-decoration:none;border:1px solid transparent;margin-bottom:-2px;color:#50575e">Full Manual</a>
+                            </div>
+
+                            <!-- Sub-tab: Skey + Script -->
+                            <div class="ca-import-tab-content" id="ca-import-skey" style="display:block">
+                                <table class="form-table" style="margin:0">
+                                    <tr>
+                                        <th><label for="ca-import-skey-name">Collection Name</label></th>
+                                        <td><input type="text" id="ca-import-skey-name" class="regular-text" placeholder="e.g. Mek Tycoon"></td>
+                                    </tr>
+                                    <tr>
+                                        <th><label for="ca-import-skey-key">Signing Key (.skey)</label></th>
+                                        <td>
+                                            <textarea id="ca-import-skey-key" class="large-text" rows="3" placeholder='Paste .skey file contents (JSON) or raw hex...'></textarea>
+                                            <p class="description">Cardano CLI format: {"type":"PaymentSigningKeyShelley_ed25519","cborHex":"5820..."}</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><label for="ca-import-skey-script">Policy Script (.script)</label></th>
+                                        <td>
+                                            <textarea id="ca-import-skey-script" class="large-text" rows="3" placeholder='Paste .script file contents (JSON)...'></textarea>
+                                            <p class="description">Native script JSON: {"type":"all","scripts":[{"type":"sig","keyHash":"..."}]}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <button type="button" class="button button-primary" id="ca-import-skey-btn">Import Policy</button>
+                                <span id="ca-import-skey-status" style="margin-left:8px"></span>
+                            </div>
+
+                            <!-- Sub-tab: Seed Phrase -->
+                            <div class="ca-import-tab-content" id="ca-import-mnemonic" style="display:none">
+                                <table class="form-table" style="margin:0">
+                                    <tr>
+                                        <th><label for="ca-import-mnemonic-name">Collection Name</label></th>
+                                        <td><input type="text" id="ca-import-mnemonic-name" class="regular-text" placeholder="e.g. My External Collection"></td>
+                                    </tr>
+                                    <tr>
+                                        <th><label for="ca-import-mnemonic-seed">Seed Phrase</label></th>
+                                        <td>
+                                            <textarea id="ca-import-mnemonic-seed" class="large-text" rows="2" placeholder="Enter 12, 15, or 24 word mnemonic..."></textarea>
+                                            <p class="description">The mnemonic will NOT be stored. Only the derived signing key is kept (encrypted).</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><label for="ca-import-mnemonic-expiry">Expiration Date</label></th>
+                                        <td>
+                                            <input type="datetime-local" id="ca-import-mnemonic-expiry" value="<?php echo gmdate( 'Y-m-d\TH:i', strtotime( '+1 year' ) ); ?>">
+                                            <p class="description">A new policy script with time lock will be generated from the derived key.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <button type="button" class="button button-primary" id="ca-import-mnemonic-btn">Import Policy</button>
+                                <span id="ca-import-mnemonic-status" style="margin-left:8px"></span>
+                            </div>
+
+                            <!-- Sub-tab: Full Manual -->
+                            <div class="ca-import-tab-content" id="ca-import-manual" style="display:none">
+                                <table class="form-table" style="margin:0">
+                                    <tr>
+                                        <th><label for="ca-import-manual-name">Collection Name</label></th>
+                                        <td><input type="text" id="ca-import-manual-name" class="regular-text" placeholder="e.g. Custom Policy"></td>
+                                    </tr>
+                                    <tr>
+                                        <th><label for="ca-import-manual-policy-id">Policy ID</label></th>
+                                        <td>
+                                            <input type="text" id="ca-import-manual-policy-id" class="large-text" placeholder="56-character hex policy ID">
+                                            <p class="description">The script will be verified against this ID via Anvil.</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th><label for="ca-import-manual-skey">Signing Key</label></th>
+                                        <td><textarea id="ca-import-manual-skey" class="large-text" rows="3" placeholder='Paste .skey file contents (JSON) or raw hex...'></textarea></td>
+                                    </tr>
+                                    <tr>
+                                        <th><label for="ca-import-manual-script">Policy Script</label></th>
+                                        <td><textarea id="ca-import-manual-script" class="large-text" rows="3" placeholder='Paste native script JSON...'></textarea></td>
+                                    </tr>
+                                </table>
+                                <button type="button" class="button button-primary" id="ca-import-manual-btn">Import Policy</button>
+                                <span id="ca-import-manual-status" style="margin-left:8px"></span>
+                            </div>
                         </div>
                     </div>
 

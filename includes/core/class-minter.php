@@ -1,7 +1,7 @@
 <?php
 /**
  * CA_Minter — Mint NFTs to the master wallet via Anvil.
- * Single-signature minting: master wallet is both funder and policy authority.
+ * Supports single-signature (master wallet policy) and dual-signature (imported external policy).
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
@@ -27,26 +27,48 @@ class CA_Minter {
             return new WP_Error( 'ca_policy_inactive', 'This minting policy is not active.' );
         }
 
-        $exp_time = strtotime( $policy['expiration_date'] );
+        $exp_time = ! empty( $policy['expiration_date'] ) ? strtotime( $policy['expiration_date'] ) : false;
         if ( $exp_time && $exp_time < time() ) {
             CA_Mint_Policy_Model::update( $policy_db_id, array( 'status' => 'expired' ) );
             return new WP_Error( 'ca_policy_expired', 'This minting policy has expired.' );
         }
 
-        // 2. Get master wallet + signing key.
-        $master = CA_Master_Wallet_Model::get( (int) $policy['master_wallet_id'] );
-        if ( ! $master ) {
-            return new WP_Error( 'ca_wallet_not_found', 'Master wallet for this policy not found.' );
+        // 2. Get signing key — either from imported policy or master wallet.
+        $master_skey = null; // Only set when dual-signing is needed.
+
+        if ( ! empty( $policy['skey_encrypted'] ) ) {
+            // Imported policy: use its own signing key for minting authority.
+            $skey = CA_Encryption::decrypt( $policy['skey_encrypted'] );
+            if ( empty( $skey ) ) {
+                return new WP_Error( 'ca_decrypt_failed', 'Failed to decrypt imported policy signing key.' );
+            }
+
+            // Master wallet is still needed as funder (its UTXOs fund the tx).
+            $master = CA_Master_Wallet::get_active();
+            if ( ! $master ) {
+                return new WP_Error( 'ca_no_master', 'Master wallet is needed to fund the minting transaction.' );
+            }
+
+            $master_skey = CA_Master_Wallet::get_signing_key( (int) $master['id'] );
+            if ( is_wp_error( $master_skey ) ) return $master_skey;
+
+            $change_address = $master['payment_address'];
+        } else {
+            // Generated policy: master wallet is both funder and policy authority.
+            $master = CA_Master_Wallet_Model::get( (int) $policy['master_wallet_id'] );
+            if ( ! $master ) {
+                return new WP_Error( 'ca_wallet_not_found', 'Master wallet for this policy not found.' );
+            }
+
+            $skey = CA_Master_Wallet::get_signing_key( (int) $master['id'] );
+            if ( is_wp_error( $skey ) ) return $skey;
+
+            // Verify signing key matches wallet.
+            $verify = CA_Escrow::verify_key_matches( $skey, $master );
+            if ( is_wp_error( $verify ) ) return $verify;
+
+            $change_address = $master['payment_address'];
         }
-
-        $skey = CA_Master_Wallet::get_signing_key( (int) $master['id'] );
-        if ( is_wp_error( $skey ) ) return $skey;
-
-        // 3. Verify signing key matches wallet.
-        $verify = CA_Escrow::verify_key_matches( $skey, $master );
-        if ( is_wp_error( $verify ) ) return $verify;
-
-        $change_address = $master['payment_address'];
         $policy_id      = $policy['policy_id'];
         $asset_name_hex = bin2hex( $asset_name );
 
@@ -103,7 +125,7 @@ class CA_Minter {
             return new WP_Error( 'ca_mint_build_failed', 'Anvil returned no CBOR for mint.' );
         }
 
-        // 5. Sign with master wallet key.
+        // 5. Sign with policy key.
         $sign_result = CardanoTransactionSignerPHP::signTransaction( $unsigned_tx, $skey );
         if ( empty( $sign_result['success'] ) ) {
             return new WP_Error( 'ca_mint_sign_failed', 'Signing failed: ' . ( $sign_result['error'] ?? 'unknown' ) );
@@ -113,8 +135,20 @@ class CA_Minter {
             return new WP_Error( 'ca_mint_sign_failed', 'Signing succeeded but no witnessSetHex returned.' );
         }
 
+        $signatures = array( $sign_result['witnessSetHex'] );
+
+        // If imported policy, also sign with master wallet key (for funding inputs).
+        if ( $master_skey && $master_skey !== $skey ) {
+            $master_sign = CardanoTransactionSignerPHP::signTransaction( $unsigned_tx, $master_skey );
+            if ( ! empty( $master_sign['success'] ) && ! empty( $master_sign['witnessSetHex'] ) ) {
+                $signatures[] = $master_sign['witnessSetHex'];
+            } else {
+                return new WP_Error( 'ca_mint_sign_failed', 'Master wallet signing failed: ' . ( $master_sign['error'] ?? 'unknown' ) );
+            }
+        }
+
         // 6. Submit via Anvil.
-        $submit_result = CA_Anvil::submit( $unsigned_tx, array( $sign_result['witnessSetHex'] ) );
+        $submit_result = CA_Anvil::submit( $unsigned_tx, $signatures );
         if ( is_wp_error( $submit_result ) ) {
             return new WP_Error( 'ca_mint_submit_failed', 'Anvil submit failed: ' . $submit_result->get_error_message() );
         }

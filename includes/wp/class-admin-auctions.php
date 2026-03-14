@@ -25,6 +25,11 @@ class CA_Admin_Auctions {
         // Minting AJAX.
         add_action( 'wp_ajax_ca_create_policy',     array( __CLASS__, 'ajax_create_policy' ) );
         add_action( 'wp_ajax_ca_get_policies',      array( __CLASS__, 'ajax_get_policies' ) );
+
+        // Policy import AJAX.
+        add_action( 'wp_ajax_ca_import_policy_skey',     array( __CLASS__, 'ajax_import_policy_skey' ) );
+        add_action( 'wp_ajax_ca_import_policy_mnemonic', array( __CLASS__, 'ajax_import_policy_mnemonic' ) );
+        add_action( 'wp_ajax_ca_import_policy_manual',   array( __CLASS__, 'ajax_import_policy_manual' ) );
         add_action( 'wp_ajax_ca_pin_to_ipfs',       array( __CLASS__, 'ajax_pin_to_ipfs' ) );
         add_action( 'wp_ajax_ca_test_pinata',       array( __CLASS__, 'ajax_test_pinata' ) );
         add_action( 'wp_ajax_ca_mint_auction_nft',  array( __CLASS__, 'ajax_mint_auction_nft' ) );
@@ -669,6 +674,63 @@ class CA_Admin_Auctions {
 
         $policies = CA_Mint_Policy::get_all_active();
         wp_send_json_success( array( 'policies' => $policies ) );
+    }
+
+    /* ── Policy Import AJAX ──────────────────────────────────────── */
+
+    public static function ajax_import_policy_skey(): void {
+        check_ajax_referer( 'ca_admin_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Unauthorized.' );
+
+        $name   = sanitize_text_field( $_POST['name'] ?? '' );
+        $skey   = wp_unslash( $_POST['skey'] ?? '' );
+        $script = wp_unslash( $_POST['script'] ?? '' );
+
+        if ( empty( $name ) )   wp_send_json_error( 'Collection name is required.' );
+        if ( empty( $skey ) )   wp_send_json_error( 'Signing key is required.' );
+        if ( empty( $script ) ) wp_send_json_error( 'Policy script is required.' );
+
+        $result = CA_Policy_Import::import_skey_and_script( $name, $skey, $script );
+        if ( is_wp_error( $result ) ) wp_send_json_error( $result->get_error_message() );
+
+        wp_send_json_success( $result );
+    }
+
+    public static function ajax_import_policy_mnemonic(): void {
+        check_ajax_referer( 'ca_admin_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Unauthorized.' );
+
+        $name       = sanitize_text_field( $_POST['name'] ?? '' );
+        $mnemonic   = sanitize_text_field( $_POST['mnemonic'] ?? '' );
+        $expiration = sanitize_text_field( $_POST['expiration_date'] ?? '' );
+
+        if ( empty( $name ) )     wp_send_json_error( 'Collection name is required.' );
+        if ( empty( $mnemonic ) ) wp_send_json_error( 'Seed phrase is required.' );
+
+        $result = CA_Policy_Import::import_mnemonic( $name, $mnemonic, $expiration );
+        if ( is_wp_error( $result ) ) wp_send_json_error( $result->get_error_message() );
+
+        wp_send_json_success( $result );
+    }
+
+    public static function ajax_import_policy_manual(): void {
+        check_ajax_referer( 'ca_admin_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Unauthorized.' );
+
+        $name      = sanitize_text_field( $_POST['name'] ?? '' );
+        $policy_id = sanitize_text_field( $_POST['policy_id'] ?? '' );
+        $skey      = wp_unslash( $_POST['skey'] ?? '' );
+        $script    = wp_unslash( $_POST['script'] ?? '' );
+
+        if ( empty( $name ) )      wp_send_json_error( 'Collection name is required.' );
+        if ( empty( $policy_id ) ) wp_send_json_error( 'Policy ID is required.' );
+        if ( empty( $skey ) )      wp_send_json_error( 'Signing key is required.' );
+        if ( empty( $script ) )    wp_send_json_error( 'Policy script is required.' );
+
+        $result = CA_Policy_Import::import_manual( $name, $policy_id, $script, $skey );
+        if ( is_wp_error( $result ) ) wp_send_json_error( $result->get_error_message() );
+
+        wp_send_json_success( $result );
     }
 
     public static function ajax_pin_to_ipfs(): void {
