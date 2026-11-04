@@ -826,7 +826,7 @@ class CA_Admin_Auctions {
         $ipfs_gateway_url = '';
         if ( strpos( $image_ipfs, 'ipfs://' ) === 0 ) {
             $cid = substr( $image_ipfs, 7 );
-            $ipfs_gateway_url = 'https://ipfs.io/ipfs/' . $cid;
+            $ipfs_gateway_url = 'https://ipfs.blockfrost.dev/ipfs/' . $cid;
         }
 
         $result['nft_image_url']   = $ipfs_gateway_url ?: $image_ipfs;

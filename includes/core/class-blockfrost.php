@@ -128,9 +128,9 @@ class CA_Blockfrost {
         if ( 0 === strpos( $uri, 'ipfs://' ) ) {
             $cid = substr( $uri, 7 );
             if ( 0 === strpos( $cid, 'ipfs/' ) ) $cid = substr( $cid, 5 );
-            return 'https://ipfs.io/ipfs/' . $cid;
+            return 'https://ipfs.blockfrost.dev/ipfs/' . $cid;
         }
-        if ( preg_match( '/^(Qm[a-zA-Z0-9]{44}|bafy[a-zA-Z0-9]+)/', $uri ) ) return 'https://ipfs.io/ipfs/' . $uri;
+        if ( preg_match( '/^(Qm[a-zA-Z0-9]{44}|bafy[a-zA-Z0-9]+)/', $uri ) ) return 'https://ipfs.blockfrost.dev/ipfs/' . $uri;
         return $uri;
     }
 
